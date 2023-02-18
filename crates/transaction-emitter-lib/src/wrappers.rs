@@ -8,19 +8,61 @@ use crate::{
     instance::Instance,
     EntryPoints, TransactionType, TransactionTypeArg,
 };
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
+use aptos_logger::{error, info};
 use aptos_sdk::transaction_builder::TransactionFactory;
 use rand::{rngs::StdRng, SeedableRng};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub async fn emit_transactions(
     cluster_args: &ClusterArgs,
     emit_args: &EmitArgs,
 ) -> Result<TxnStats> {
-    let cluster = Cluster::try_from_cluster_args(cluster_args)
-        .await
-        .context("Failed to build cluster")?;
-    emit_transactions_with_cluster(&cluster, emit_args, cluster_args.reuse_accounts).await
+    if emit_args.delay_after_minting.is_none() {
+        let cluster = Cluster::try_from_cluster_args(cluster_args)
+            .await
+            .context("Failed to build cluster")?;
+        return emit_transactions_with_cluster(&cluster, emit_args, cluster_args.reuse_accounts).await;
+    } else {
+        let initial_delay_after_minting = emit_args.delay_after_minting.unwrap();
+        let start_time = Instant::now();
+        let mut i = 0;
+        loop {
+            let cluster = Cluster::try_from_cluster_args(cluster_args)
+                .await
+                .context("Failed to build cluster")?;
+
+            let cur_emit_args = if i > 0 {
+                let mut cur_emit_args = emit_args.clone();
+                cur_emit_args.delay_after_minting =
+                    initial_delay_after_minting
+                        .checked_sub(start_time.elapsed().as_secs());
+                if cur_emit_args.delay_after_minting.is_none() {
+                    bail!(
+                        "txn_emitter couldn't succeed after {} runs", i
+                    );
+                }
+                info!(
+                    "Reduced delay_after_minting to {} for run {}",
+                    cur_emit_args.delay_after_minting.unwrap(),
+                    i
+                );
+                cur_emit_args
+            } else {
+                emit_args.clone()
+            };
+            let result =
+                emit_transactions_with_cluster(&cluster, &cur_emit_args, cluster_args.reuse_accounts)
+                    .await;
+            match result {
+                Ok(value) => return Ok(value),
+                Err(e) => {
+                    error!("Couldn't run txn emitter: {:?}, retrying", e)
+                },
+            }
+            i += 1;
+        }
+    }
 }
 
 pub async fn emit_transactions_with_cluster(

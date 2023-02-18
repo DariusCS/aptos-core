@@ -156,6 +156,13 @@ pub struct EmitArgs {
     // and want to make sure that initialization succeeds
     // (account minting and txn-specific initialization), before the
     // loadtest puts significant load, you can add a delay here.
+    //
+    // This also enables few other changes needed to run txn emitter
+    // from multiple machines simultaneously:
+    // - retrying minting phase before this delay expires
+    // - having a single transaction on root/source account
+    //   (to reduce contention and issues with sequence numbers across multiple txn emitters).
+    //   basically creating a new source account (to then create seed accounts from).
     #[clap(long)]
     pub delay_after_minting: Option<u64>,
 }
