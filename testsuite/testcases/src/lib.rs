@@ -1,9 +1,11 @@
 // Copyright © Aptos Foundation
+// Parts of the project are originally copyright © Meta Platforms, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod compatibility_test;
 pub mod consensus_reliability_tests;
 pub mod forge_setup_test;
+pub mod framework_upgrade;
 pub mod fullnode_reboot_stress_test;
 pub mod load_vs_perf_benchmark;
 pub mod network_bandwidth_test;
@@ -104,6 +106,8 @@ pub enum LoadDestination {
     AllNodes,
     AllValidators,
     AllFullnodes,
+    // Send to AllFullnodes, if any exist, otherwise to AllValidators
+    FullnodesOtherwiseValidators,
     Peers(Vec<PeerId>),
 }
 
@@ -116,6 +120,13 @@ impl LoadDestination {
             LoadDestination::AllNodes => [&all_validators[..], &all_fullnodes[..]].concat(),
             LoadDestination::AllValidators => all_validators,
             LoadDestination::AllFullnodes => all_fullnodes,
+            LoadDestination::FullnodesOtherwiseValidators => {
+                if all_fullnodes.is_empty() {
+                    all_validators
+                } else {
+                    all_fullnodes
+                }
+            },
             LoadDestination::Peers(peers) => peers,
         }
     }
@@ -123,7 +134,7 @@ impl LoadDestination {
 
 pub trait NetworkLoadTest: Test {
     fn setup(&self, _ctx: &mut NetworkContext) -> Result<LoadDestination> {
-        Ok(LoadDestination::AllNodes)
+        Ok(LoadDestination::FullnodesOtherwiseValidators)
     }
     // Load is started before this function is called, and stops after this function returns.
     // Expected duration is passed into this function, expecting this function to take that much
