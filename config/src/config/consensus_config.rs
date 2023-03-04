@@ -86,7 +86,7 @@ impl Default for ConsensusConfig {
             quorum_store_poll_count: 15,
             // Whether to create partial blocks when few transactions exist, or empty blocks when there is
             // pending ordering, or to wait for quorum_store_poll_count * 30ms to collect transactions for a block
-            wait_for_full_blocks_above_recent_fill_threshold: 0.5,
+            wait_for_full_blocks_above_recent_fill_threshold: 1.1,
             wait_for_full_blocks_above_num_pending_uncommitted_blocks: 8,
             intra_consensus_channel_buffer_size: 10,
             quorum_store_configs: QuorumStoreConfig::default(),
