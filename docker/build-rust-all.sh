@@ -26,6 +26,7 @@ cargo build --locked --profile=$PROFILE \
     -p aptos-indexer-grpc-cache-worker \
     -p aptos-indexer-grpc-file-store \
     -p aptos-indexer-grpc-data-service \
+    -p aptos-indexer-grpc-parser \
     "$@"
 
 # Build aptos-node separately
