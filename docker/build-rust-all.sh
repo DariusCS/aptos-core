@@ -51,6 +51,7 @@ BINS=(
     aptos-indexer-grpc-cache-worker
     aptos-indexer-grpc-file-store
     aptos-indexer-grpc-data-service
+    aptos-indexer-grpc-parser
     aptos-fn-check-client
     aptos-db-tool
     aptos-db-bootstrapper
